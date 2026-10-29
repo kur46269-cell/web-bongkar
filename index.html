@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="id"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SiteScope - Audit Website</title>
+<style>
+:root{--bg:#f6f7fb;--c:#fff;--b:#e3e6ee;--t:#161a24;--m:#667085;--ac:#5b5bf0;--g:#16a34a;--y:#d97706;--r:#dc2626}
+@media(prefers-color-scheme:dark){:root{--bg:#0b0e16;--c:#131826;--b:#242b3d;--t:#e8ebf4;--m:#8b94a9;--ac:#8b8bff;--g:#34d399;--y:#fbbf24;--r:#f87171}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--t);font:14px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+.w{max-width:1000px;margin:0 auto;padding:20px 16px 60px}h1{font-size:22px;margin:0}h1 small{font-size:12px;color:var(--m);font-weight:400;display:block}
+.card{background:var(--c);border:1px solid var(--b);border-radius:14px;padding:16px;margin-top:14px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}input,select{background:var(--bg);color:var(--t);border:1px solid var(--b);border-radius:10px;padding:11px 12px;font:inherit}
+input{flex:1;min-width:200px}button{cursor:pointer;border:1px solid var(--b);background:var(--c);color:var(--t);border-radius:10px;padding:9px 13px;font:inherit;font-weight:600}
+button.p{background:var(--ac);border-color:var(--ac);color:#fff}button.on{border-color:var(--ac);color:var(--ac)}
+.rings{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:14px;text-align:center}
+.ring{position:relative;width:96px;height:96px;margin:0 auto}.ring b{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:24px}
+.big .ring{width:130px;height:130px}.big b{font-size:34px}.lab{font-size:12px;color:var(--m);margin-top:4px}
+.pill{font-size:11px;font-weight:700;padding:2px 8px;border-radius:99px;background:var(--bg);border:1px solid var(--b);color:var(--m)}
+.s3{color:var(--r)}.s2{color:var(--y)}.s1{color:var(--m)}
+details{border:1px solid var(--b);border-radius:10px;padding:10px 12px;margin-top:8px;background:var(--bg)}summary{cursor:pointer;font-weight:600;display:flex;gap:8px;align-items:center}
+.fix{margin-top:8px;padding:8px 10px;border-left:3px solid var(--ac);background:var(--c);border-radius:6px;font-size:13px}
+pre{background:var(--bg);border:1px solid var(--b);border-radius:10px;padding:12px;overflow:auto;max-height:420px;font-size:12px;white-space:pre-wrap;word-break:break-all;margin:0}
+.tabs{display:flex;gap:6px;overflow-x:auto;margin-top:14px}.g{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px}
+.it{border:1px solid var(--b);border-radius:10px;padding:10px;background:var(--bg)}.it small{color:var(--m);display:block}
+.mono{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px}a{color:var(--ac)}.hid{display:none}.up{color:var(--g)}.dn{color:var(--r)}
+@media print{form,.tabs,button,#hist{display:none!important}.pane{display:block!important}body{background:#fff;color:#000}details{display:block}details>*{display:block}}
+</style></head><body><div class="w">
+<h1>SiteScope<small>Audit keamanan, SEO, performa &amp; aksesibilitas, lengkap dengan saran perbaikan. Berjalan penuh di browser.</small></h1>
+<form id="f" class="card row"><input id="u" value="https://wikipedia.org" placeholder="https://situs-anda.com" aria-label="URL"><button class="p">Pindai</button></form>
+<details class="card" id="adv"><summary>Proxy gagal? Pakai proxy sendiri atau tempel HTML</summary>
+<p class="lab">Proxy publik gratis sering mati atau menolak akses. Dua jalan keluar yang pasti jalan:</p>
+<b>1. Proxy sendiri (Cloudflare Worker, gratis)</b><div class="row" style="margin:6px 0 14px"><input id="cp" placeholder="https://nama-anda.workers.dev/?url={url}" aria-label="Proxy sendiri"><button type="button" id="cpSave">Simpan</button></div>
+<b>2. Tempel kode HTML</b> <span class="lab">(buka situs, lihat sumber halaman, salin semuanya). URL di atas dipakai untuk membaca path relatif.</span>
+<textarea id="ph" rows="5" style="width:100%;margin:6px 0;background:var(--bg);color:var(--t);border:1px solid var(--b);border-radius:10px;padding:10px" class="mono" placeholder="<!DOCTYPE html>..."></textarea><button type="button" class="p" id="phGo">Analisis HTML ini</button></details>
+<div id="hist" class="row" style="margin-top:10px"></div>
+<div id="st" class="card hid mono"></div>
+<div id="out" class="hid">
+<div class="card"><div class="row" style="justify-content:space-between"><div id="sum"></div><div class="row"><button id="bMd">Salin laporan</button><button id="bPdf">PDF</button><button id="bJson">JSON</button></div></div>
+<div class="rings" id="rings" style="margin-top:14px"></div></div>
+<div class="tabs" id="tabs"></div>
+<div class="card pane" data-p="f"><div id="fnd"></div></div>
+<div class="card pane hid" data-p="t"><div class="g" id="tech"></div></div>
+<div class="card pane hid" data-p="a"><div class="row" id="aflt" style="margin-bottom:10px"></div><div id="ahost" style="margin-bottom:10px"></div><div id="alist" style="max-height:400px;overflow:auto"></div></div>
+<div class="card pane hid" data-p="s"><div class="g" id="meta"></div><h3>Struktur heading</h3><div id="out2" class="mono"></div></div>
+<div class="card pane hid" data-p="x"><pre id="hdr" style="margin-bottom:10px"></pre><pre id="src"></pre></div>
+</div></div>
+<script>
+const $=i=>document.getElementById(i),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let D,aflt='img';
+const PX=[{n:'corsproxy.io',u:t=>'https://corsproxy.io/?url='+encodeURIComponent(t),h:1},{n:'allorigins',u:t=>'https://api.allorigins.win/raw?url='+encodeURIComponent(t)},{n:'codetabs',u:t=>'https://api.codetabs.com/v1/proxy/?quest='+encodeURIComponent(t)},{n:'thingproxy',u:t=>'https://thingproxy.freeboard.io/fetch/'+t},{n:'direct',u:t=>t,h:1}];
+const cpGet=()=>{try{return localStorage.getItem('ss_cp')||''}catch{return''}};
+async function get(url,log,raw){const er=[];const L=cpGet().includes('{url}')?[{n:'proxy sendiri',u:t=>cpGet().replace('{url}',encodeURIComponent(t)),h:1},...PX]:PX;for(const p of L){log('Mencoba '+p.n+'…');const c=new AbortController(),t0=performance.now(),to=setTimeout(()=>c.abort(),15000);
+try{const r=await fetch(p.u(url),{signal:c.signal});if(!r.ok)throw Error('HTTP '+r.status);const html=await r.text();if(!raw&&!/<html|<body|<head/i.test(html))throw Error('bukan HTML');
+const H={};if(p.h)r.headers.forEach((v,k)=>H[k.toLowerCase()]=v);return{html,H,real:!!(p.h&&Object.keys(H).length),proxy:p.n,ms:Math.round(performance.now()-t0),bytes:new Blob([html]).size}}
+catch(e){er.push(p.n+': '+(e.name==='AbortError'?'timeout':e.message))}finally{clearTimeout(to)}}throw Error(er.join(' | '))}
+
+/* Teknologi: [nama, kategori, regex HTML, header, regex header] */
+const TECH=[['React','Frontend',/data-reactroot|react(\.production|-dom)|_reactRoot/i],['Next.js','Framework',/id="__next"|_next\/static/,'x-powered-by',/next/i],['Vue.js','Frontend',/data-v-app|vue(\.runtime|\.global|@\d)|data-v-[0-9a-f]{6}/i],['Nuxt','Framework',/id="__nuxt"|_nuxt\//],['Angular','Frontend',/ng-version|ng-app/],['Svelte','Frontend',/svelte-[a-z0-9]{5,}|_app\/immutable/],['jQuery','Library',/jquery[.-]?\d*(\.min)?\.js/i],['Alpine.js','Library',/x-data=|alpinejs/],['Tailwind CSS','CSS',/cdn\.tailwindcss|tailwind(css)?[.\-@/]/i],['Bootstrap','CSS',/bootstrap(\.min)?\.(css|js)|bootstrap@/i],['WordPress','CMS',/wp-content|wp-includes/],['Shopify','E-commerce',/cdn\.shopify\.com/],['Wix','Builder',/parastorage\.com|wixstatic/],['Webflow','Builder',/data-wf-page|webflow\.com/],['MediaWiki','CMS',/mediawiki|mw-config/i],['Google Analytics','Analytics',/google-analytics\.com|googletagmanager\.com\/gtag|G-[A-Z0-9]{8,}/],['Google Tag Manager','Analytics',/googletagmanager\.com\/gtm|GTM-[A-Z0-9]+/],['Cloudflare','CDN',/cloudflareinsights|cdnjs\.cloudflare/,'server',/cloudflare/i],['Vercel','Hosting',/$^/,'server',/vercel/i],['Nginx','Server',/$^/,'server',/nginx/i],['Apache','Server',/$^/,'server',/apache/i],['PHP','Bahasa',/$^/,'x-powered-by',/php/i],['Font Awesome','Ikon',/font-?awesome/i],['Google Fonts','Font',/fonts\.googleapis\.com/]];
+function tech(html,H){const gen=(html.match(/<meta[^>]+name=["']generator["'][^>]+content=["']([^"']+)/i)||[])[1];const o=TECH.filter(t=>t[2].test(html)||(t[3]&&t[4].test(H[t[3]]||''))).map(t=>({n:t[0],c:t[1]}));if(gen)o.unshift({n:gen.slice(0,32),c:'Generator'});return o}
+
+/* Aturan audit: [kategori, tingkat(1-3), judul, saran, fn(c)] -> true lolos | false/string gagal | null tidak berlaku */
+const hd=k=>c=>{const v=c.H[k];return v?true:(c.real?false:null)};
+const RULES=[
+['sec',3,'HTTPS aktif','Pasang sertifikat TLS (mis. Let\'s Encrypt) dan alihkan semua HTTP ke HTTPS.',c=>c.https],
+['sec',3,'Content-Security-Policy','Tambahkan header CSP. Mulai dari Content-Security-Policy-Report-Only, lalu perketat dan hindari unsafe-inline.',c=>{const v=c.H['content-security-policy']||c.mt('Content-Security-Policy');if(!v)return c.real?false:null;return/unsafe-(inline|eval)/.test(v)?'CSP memakai unsafe-inline/unsafe-eval':true}],
+['sec',2,'Strict-Transport-Security','Kirim header: Strict-Transport-Security: max-age=31536000; includeSubDomains',c=>c.https?hd('strict-transport-security')(c):null],
+['sec',2,'Perlindungan clickjacking','Tambahkan X-Frame-Options: DENY atau CSP frame-ancestors \'self\'.',c=>c.H['x-frame-options']||/frame-ancestors/.test(c.H['content-security-policy']||'')?true:(c.real?false:null)],
+['sec',1,'X-Content-Type-Options','Kirim header: X-Content-Type-Options: nosniff',hd('x-content-type-options')],
+['sec',1,'Referrer-Policy','Kirim header: Referrer-Policy: strict-origin-when-cross-origin',c=>c.H['referrer-policy']||c.q('meta[name=referrer]').length?true:(c.real?false:null)],
+['sec',2,'Tidak ada mixed content','Ubah semua resource http:// menjadi https://.',c=>{if(!c.https)return null;const n=[...c.q('[src],link[href]')].filter(e=>/^http:\/\//i.test(e.getAttribute('src')||e.getAttribute('href'))).length;return n?n+' resource memakai http://':true}],
+['sec',1,'SRI untuk script eksternal','Tambahkan atribut integrity + crossorigin pada script/CSS dari CDN.',c=>{const n=[...c.q('script[src]')].filter(s=>/^(https?:)?\/\//.test(s.getAttribute('src'))&&!s.integrity&&!s.src.includes(c.host)).length;return n?n+' script eksternal tanpa integrity':true}],
+['sec',3,'Form password aman','Jangan kirim kredensial lewat HTTP.',c=>c.q('input[type=password]').length&&!c.https?'Input password pada halaman HTTP':true],
+['seo',3,'Title halaman','Tambahkan &lt;title&gt; unik berisi 20 sampai 65 karakter.',c=>{const t=c.doc.title.trim();return!t?false:(t.length<20||t.length>65)?`Panjang ${t.length} karakter`:true}],
+['seo',2,'Meta description','Tulis meta description 70 sampai 170 karakter yang menarik klik.',c=>{const d=c.mt('description',1);return!d?false:(d.length<70||d.length>170)?`Panjang ${d.length} karakter`:true}],
+['seo',2,'Tepat satu H1','Gunakan satu H1 yang mewakili topik utama halaman.',c=>{const n=c.q('h1').length;return n===1?true:n+' elemen H1'}],
+['seo',1,'Canonical URL','Tambahkan &lt;link rel="canonical"&gt; untuk mencegah konten duplikat.',c=>!!c.q('link[rel=canonical]').length],
+['seo',1,'Open Graph','Tambahkan og:title, og:description, og:image agar pratinjau share bagus.',c=>!!c.q('meta[property="og:title"]').length],
+['seo',1,'Structured data','Tambahkan JSON-LD (schema.org) untuk rich results.',c=>!!c.q('script[type="application/ld+json"]').length],
+['seo',3,'Tidak diblokir noindex','Hapus noindex jika halaman ingin muncul di pencarian.',c=>/noindex/i.test(c.mt('robots',1)||'')?'Meta robots berisi noindex':true],
+['seo',2,'Viewport mobile','Tambahkan &lt;meta name="viewport" content="width=device-width, initial-scale=1"&gt;.',c=>!!c.q('meta[name=viewport]').length],
+['perf',2,'Waktu respons < 2 detik','Aktifkan caching, CDN, dan kompresi server. (Waktu diukur lewat proxy, sifatnya perkiraan.)',c=>c.ms>2000?c.ms+' ms':true],
+['perf',2,'Ukuran HTML < 200 KB','Pecah konten, hapus inline berlebih, aktifkan gzip/brotli.',c=>c.bytes>204800?(c.bytes/1024|0)+' KB':true],
+['perf',2,'Script tidak memblokir render','Beri atribut defer atau async pada script di &lt;head&gt;.',c=>{const n=[...c.q('head script[src]')].filter(s=>!s.defer&&!s.async&&s.type!=='module').length;return n?n+' script memblokir render':true}],
+['perf',1,'Jumlah script eksternal <= 15','Gabungkan atau hapus script yang tidak perlu.',c=>c.A.js.length>15?c.A.js.length+' script':true],
+['perf',1,'Jumlah stylesheet <= 6','Gabungkan CSS dan buang yang tidak terpakai.',c=>c.A.css.length>6?c.A.css.length+' stylesheet':true],
+['perf',2,'Gambar punya width/height','Isi atribut width dan height untuk mencegah layout shift (CLS).',c=>{const im=[...c.q('img')];if(!im.length)return null;const n=im.filter(i=>!(i.getAttribute('width')&&i.getAttribute('height'))).length;return n>im.length*.3?`${n} dari ${im.length} gambar tanpa dimensi`:true}],
+['perf',1,'Lazy-loading gambar','Tambahkan loading="lazy" pada gambar di bawah layar pertama.',c=>{const im=[...c.q('img')].slice(3);if(im.length<4)return null;const n=im.filter(i=>i.loading!=='lazy').length;return n>im.length*.5?n+' gambar belum lazy':true}],
+['perf',1,'Preconnect ke origin eksternal','Tambahkan &lt;link rel="preconnect"&gt; untuk CDN/font utama.',c=>c.A.js.concat(c.A.css).some(u=>!u.includes(c.host))?(c.q('link[rel=preconnect],link[rel=dns-prefetch]').length?true:false):null],
+['a11y',3,'Atribut lang','Tambahkan lang pada &lt;html&gt;, mis. lang="id".',c=>!!c.doc.documentElement.lang],
+['a11y',3,'Alt pada gambar','Beri alt deskriptif (atau alt="" untuk gambar dekoratif).',c=>{const n=[...c.q('img')].filter(i=>!i.hasAttribute('alt')).length;return n?n+' gambar tanpa alt':true}],
+['a11y',3,'Label pada input form','Hubungkan &lt;label for&gt; atau aria-label ke setiap input.',c=>{const n=[...c.q('input:not([type=hidden]):not([type=submit]):not([type=button]),select,textarea')].filter(i=>!(i.getAttribute('aria-label')||i.getAttribute('aria-labelledby')||i.title||(i.id&&c.doc.querySelector(`label[for="${CSS.escape(i.id)}"]`))||i.closest('label'))).length;return n?n+' input tanpa label':true}],
+['a11y',2,'Tombol & tautan punya nama','Isi teks atau aria-label pada tombol/tautan ikon.',c=>{const n=[...c.q('a[href],button')].filter(e=>!(e.textContent.trim()||e.getAttribute('aria-label')||e.title||e.querySelector('img[alt]:not([alt=""])'))).length;return n?n+' elemen tanpa nama':true}],
+['a11y',2,'Landmark &lt;main&gt;','Bungkus konten utama dengan &lt;main&gt; agar mudah dinavigasi pembaca layar.',c=>!!c.q('main,[role=main]').length],
+['a11y',2,'Zoom tidak dikunci','Hapus user-scalable=no / maximum-scale=1 dari meta viewport.',c=>/user-scalable\s*=\s*(no|0)|maximum-scale\s*=\s*1(\.0)?\b/.test(c.mt('viewport',1)||'')?'Zoom dibatasi':true],
+['a11y',1,'Urutan heading','Jangan melompati level heading (H2 langsung ke H4).',c=>{let p=0;for(const h of c.q('h1,h2,h3,h4,h5,h6')){const l=+h.tagName[1];if(p&&l>p+1)return`H${p} lompat ke H${l}`;p=l}return true}]];
+const CAT={sec:'Keamanan',seo:'SEO',perf:'Performa',a11y:'Aksesibilitas'},W={3:20,2:10,1:5},col=s=>s>=90?'var(--g)':s>=70?'var(--y)':'var(--r)';
+function audit(c){const F=[],P=[],sc={};for(const k in CAT){let loss=0,n=0;RULES.filter(r=>r[0]===k).forEach(r=>{const v=r[4](c);if(v===null||v===undefined)return;n++;if(v===true)P.push({cat:k,t:r[2]});else{loss+=W[r[1]];F.push({cat:k,sev:r[1],t:r[2],fix:r[3],d:typeof v==='string'?v:''})}});sc[k]=n?Math.max(0,100-loss):null}
+const a=Object.values(sc).filter(v=>v!==null);sc.all=a.length?Math.round(a.reduce((x,y)=>x+y)/a.length):0;return{F:F.sort((x,y)=>y.sev-x.sev),P,sc}}
+
+function assets(doc,base){const A={img:[],js:[],css:[],link:[]},rs=r=>{try{return r&&!/^(data:|javascript:|#|mailto:|tel:)/i.test(r)?new URL(r,base).href:null}catch{}},add=(k,v)=>{if(v&&!A[k].includes(v))A[k].push(v)};
+doc.querySelectorAll('img').forEach(i=>add('img',rs(i.getAttribute('src')||i.dataset.src)));doc.querySelectorAll('script[src]').forEach(s=>add('js',rs(s.getAttribute('src'))));doc.querySelectorAll('link[rel~=stylesheet]').forEach(l=>add('css',rs(l.getAttribute('href'))));doc.querySelectorAll('a[href]').forEach(a=>add('link',rs(a.getAttribute('href'))));return A}
+
+$('cp').value=cpGet();$('cpSave').onclick=e=>{try{localStorage.setItem('ss_cp',$('cp').value.trim())}catch{}e.target.textContent='Tersimpan ✓';setTimeout(()=>e.target.textContent='Simpan',1500)};
+$('phGo').onclick=()=>{const h=$('ph').value.trim();if(!h)return;let u=$('u').value.trim();if(!/^https?:\/\//i.test(u))u='https://'+u;scan(u,h)};
+$('f').onsubmit=e=>{e.preventDefault();let u=$('u').value.trim();if(!/^https?:\/\//i.test(u))u='https://'+u;$('u').value=u;scan(u)};
+async function scan(url,pasted){$('out').classList.add('hid');const st=$('st');st.classList.remove('hid');
+try{const r=pasted?{html:pasted,H:{},real:false,proxy:'HTML tempel',ms:0,bytes:new Blob([pasted]).size}:await get(url,m=>st.textContent=m);st.textContent='Menganalisis…';const doc=new DOMParser().parseFromString(r.html,'text/html'),host=new URL(url).hostname,A=assets(doc,url);
+const c={...r,doc,url,host,A,https:url.startsWith('https://'),q:s=>doc.querySelectorAll(s),mt:(n,byName)=>doc.querySelector(byName?`meta[name="${n}" i]`:`meta[http-equiv="${n}" i]`)?.content||''};
+const res=audit(c);D={url,ms:r.ms,bytes:r.bytes,proxy:r.proxy,real:r.real,H:r.H,html:r.html,tech:tech(r.html,r.H),A,...res,title:doc.title.trim(),desc:c.mt('description',1),outline:[...doc.querySelectorAll('h1,h2,h3,h4')].slice(0,80).map(h=>[+h.tagName[1],h.textContent.trim().replace(/\s+/g,' ').slice(0,90)])};
+const prev=hist().find(h=>h.u===url);D.prev=prev?prev.s:null;save(url,res.sc);render();st.classList.add('hid');$('out').classList.remove('hid')}
+catch(e){st.innerHTML='<b>Tidak bisa mengambil halaman.</b><br>'+esc(e.message).replace(/ \| /g,'<br>')+'<br><br>Penyebab umum: proxy publik gratis sedang mati/menolak (HTTP 401/403), atau situs memblokir bot. Buka bagian <b>"Proxy gagal?"</b> di atas: pasang proxy Cloudflare Worker sendiri atau tempel kode HTML.';$('adv').open=true}}
+
+function ring(v,l,big){const r=big?56:40,len=2*Math.PI*r,s=v===null?0:v,vb=big?130:96;return`<div class="${big?'big':''}"><div class="ring"><svg viewBox="0 0 ${vb} ${vb}" width="100%"><circle cx="${vb/2}" cy="${vb/2}" r="${r}" fill="none" stroke="var(--b)" stroke-width="9"/><circle cx="${vb/2}" cy="${vb/2}" r="${r}" fill="none" stroke="${v===null?'var(--b)':col(s)}" stroke-width="9" stroke-linecap="round" stroke-dasharray="${len*s/100} ${len}" transform="rotate(-90 ${vb/2} ${vb/2})"/></svg><b>${v===null?'-':v}</b></div><div class="lab">${l}</div></div>`}
+function render(){const sc=D.sc,dl=D.prev&&D.prev.all!==undefined?sc.all-D.prev.all:null;
+$('sum').innerHTML=`<b>${esc(D.title||D.url)}</b><div class="lab mono">${esc(D.url)}<br>${D.F.length} temuan · ${D.P.length} lolos · ${D.ms} ms via ${D.proxy} · ${(D.bytes/1024).toFixed(0)} KB${D.real?'':' · header HTTP tidak terbaca (aturan header dilewati)'}${dl!==null?` · <span class="${dl>=0?'up':'dn'}">${dl>=0?'▲':'▼'} ${Math.abs(dl)} vs pindai sebelumnya</span>`:''}</div>`;
+$('rings').innerHTML=ring(sc.all,'Skor total',1)+Object.keys(CAT).map(k=>ring(sc[k],CAT[k])).join('');
+const T=[['f','Temuan'],['t','Teknologi'],['a','Aset & Link'],['s','Struktur'],['x','Header & Source']];$('tabs').innerHTML=T.map(t=>`<button data-t="${t[0]}">${t[1]}</button>`).join('');$('tabs').onclick=e=>e.target.dataset.t&&tab(e.target.dataset.t);tab('f');
+const SV={3:'Kritis',2:'Penting',1:'Saran'};
+$('fnd').innerHTML=(D.F.length?D.F.map(f=>`<details><summary><span class="s${f.sev}">●</span> ${f.t}<span class="pill">${CAT[f.cat]}</span><span class="pill s${f.sev}">${SV[f.sev]}</span></summary>${f.d?`<div class="lab">Temuan: ${esc(f.d)}</div>`:''}<div class="fix"><b>Cara memperbaiki:</b> ${f.fix}</div></details>`).join(''):'<p>Tidak ada temuan. Bagus!</p>')+`<details><summary>Lolos (${D.P.length})</summary>${D.P.map(p=>`<div class="lab">✓ ${p.t} <span class="pill">${CAT[p.cat]}</span></div>`).join('')}</details>`;
+$('tech').innerHTML=D.tech.length?D.tech.map(t=>`<div class="it"><b>${esc(t.n)}</b><small>${t.c}</small></div>`).join(''):'<p class="lab">Tidak ada teknologi dikenali.</p>';
+$('meta').innerHTML=[['Title',D.title],['Description',D.desc],['Total aset',D.A.img.length+D.A.js.length+D.A.css.length],['Link',D.A.link.length]].map(m=>`<div class="it"><small>${m[0]}</small>${esc(m[1]||'-')}</div>`).join('');
+$('out2').innerHTML=D.outline.map(h=>`<div style="padding-left:${(h[0]-1)*16}px"><b>H${h[0]}</b> ${esc(h[1])}</div>`).join('')||'-';
+$('hdr').textContent=Object.keys(D.H).length?Object.entries(D.H).map(([k,v])=>k+': '+v).join('\n'):'Header HTTP tidak tersedia lewat proxy ini. Untuk hasil pasti: curl -sIL "'+D.url+'"';$('src').textContent=D.html;aRender();hRender()}
+function aRender(){const A=D.A,h={};A.js.concat(A.css,A.img).forEach(u=>{try{const x=new URL(u).hostname;h[x]=(h[x]||0)+1}catch{}});
+$('ahost').innerHTML='<small class="lab">Host teratas:</small> '+Object.entries(h).sort((a,b)=>b[1]-a[1]).slice(0,8).map(([k,v])=>`<span class="pill">${esc(k)} · ${v}</span>`).join(' ');
+$('aflt').innerHTML=[['img','Gambar'],['js','JS'],['css','CSS'],['link','Link']].map(t=>`<button data-f="${t[0]}" class="${aflt===t[0]?'on':''}">${t[1]} (${A[t[0]].length})</button>`).join('');
+$('alist').innerHTML=A[aflt].slice(0,150).map(u=>`<div class="mono" style="padding:3px 0;border-bottom:1px solid var(--b);word-break:break-all"><a href="${esc(u)}" target="_blank" rel="noopener noreferrer">${esc(u)}</a></div>`).join('')||'-'}
+$('aflt').onclick=e=>{if(e.target.dataset.f){aflt=e.target.dataset.f;aRender()}};
+function tab(k){document.querySelectorAll('.pane').forEach(p=>p.classList.toggle('hid',p.dataset.p!==k));document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===k))}
+function hist(){try{return JSON.parse(localStorage.getItem('ss_h')||'[]')}catch{return[]}}
+function save(u,s){try{const h=hist().filter(x=>x.u!==u);h.unshift({u,s,t:Date.now()});localStorage.setItem('ss_h',JSON.stringify(h.slice(0,8)))}catch{}}
+function hRender(){$('hist').innerHTML=hist().map(h=>`<button data-u="${esc(h.u)}" class="pill" style="cursor:pointer">${esc(new URL(h.u).hostname)} · ${h.s.all}</button>`).join('')}
+$('hist').onclick=e=>{if(e.target.dataset.u){$('u').value=e.target.dataset.u;scan(e.target.dataset.u)}};hRender();
+function md(){const s=D.sc;return`# Laporan SiteScope\n${D.url}\n\nSkor total: **${s.all}** | Keamanan ${s.sec??'-'} | SEO ${s.seo??'-'} | Performa ${s.perf??'-'} | Aksesibilitas ${s.a11y??'-'}\n\n## Temuan\n`+D.F.map(f=>`- [${f.sev===3?'KRITIS':f.sev===2?'PENTING':'SARAN'}] (${CAT[f.cat]}) ${f.t}${f.d?' - '+f.d:''}\n  - Perbaikan: ${f.fix.replace(/&lt;/g,'<').replace(/&gt;/g,'>')}`).join('\n')+`\n\n## Teknologi\n`+D.tech.map(t=>`- ${t.n} (${t.c})`).join('\n')}
+async function cp(t){try{await navigator.clipboard.writeText(t)}catch{const x=document.createElement('textarea');x.value=t;document.body.appendChild(x);x.select();document.execCommand('copy');x.remove()}}
+$('bMd').onclick=async e=>{await cp(md());e.target.textContent='Tersalin ✓';setTimeout(()=>e.target.textContent='Salin laporan',1800)};
+$('bPdf').onclick=()=>{document.title='SiteScope - '+new URL(D.url).hostname;window.print()};
+$('bJson').onclick=()=>{const{html,prev,...r}=D,a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(r,null,2)],{type:'application/json'}));a.download='sitescope-report.json';a.click()};
+</script></body></html>
